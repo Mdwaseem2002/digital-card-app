@@ -1,4 +1,3 @@
-//src\Components\ProfileView.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
 
@@ -11,24 +10,19 @@ const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout,
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // If the static buttons are visible in the viewport, HIDE the sticky button
-        // If they are NOT visible (scrolled down or up), SHOW the sticky button
-        // specifically, we only want to show sticky if the buttons are BELOW the viewport
         if (entry.isIntersecting) {
           setShowSticky(false);
         } else {
-          // Only show sticky if we are above the section (bounding rect top is positive)
           if (entry.boundingClientRect.top > 0) {
             setShowSticky(true);
           } else {
-            // We scrolled past it to the very bottom
             setShowSticky(false); 
           }
         }
       },
       {
         root: null,
-        threshold: 0.1, // Trigger when 10% of the buttons are visible
+        threshold: 0.1, 
         rootMargin: "0px"
       }
     );
@@ -93,21 +87,24 @@ const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout,
            <div className="col-md-7 p-5 border-end border-secondary border-opacity-10">
               <h6 className="section-title mb-4">Contact Information</h6>
               
-              <div className="info-row">
+              {/* REMOVED LABELS, KEPT VALUES */}
+              <div className="info-row d-flex align-items-center gap-3 mb-3">
                 <div className="info-icon"><Icons.Phone /></div>
-                <div><span className="label-text">Work Phone</span><span className="value-text">{formData.workPhone || "N/A"}</span></div>
+                <div><span className="value-text">{formData.workPhone || "N/A"}</span></div>
               </div>
-              <div className="info-row">
+
+              <div className="info-row d-flex align-items-center gap-3 mb-3">
                 <div className="info-icon"><Icons.Mail /></div>
-                <div><span className="label-text">Work Email</span><span className="value-text">{formData.workEmail || "N/A"}</span></div>
+                <div><span className="value-text">{formData.workEmail || "N/A"}</span></div>
               </div>
-              <div className="info-row">
+
+              <div className="info-row d-flex align-items-center gap-3 mb-3">
                 <div className="info-icon"><Icons.Globe /></div>
-                <div><span className="label-text">Website</span><span className="value-text">{formData.website || "N/A"}</span></div>
+                <div><span className="value-text">{formData.website || "N/A"}</span></div>
               </div>
               
               <h6 className="section-title mb-4 mt-5">Address</h6>
-              <div className="info-row border-0">
+              <div className="info-row border-0 d-flex gap-3">
                 <div className="info-icon"><Icons.MapPin /></div>
                 <div>
                   <span className="value-text d-block">{formData.address || "Street Address"}</span>
@@ -154,7 +151,6 @@ const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout,
       </div>
 
       {/* --- FLOATING MOBILE STICKY BUTTON --- */}
-      {/* This only appears on mobile when the main button is NOT visible */}
       <div className={`mobile-sticky-bar ${showSticky ? 'visible' : ''}`}>
         <button className="btn w-100 py-3 fw-bold text-dark d-flex align-items-center justify-content-center gap-2"
           style={{ background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '6px' }}>

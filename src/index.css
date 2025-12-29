@@ -358,13 +358,15 @@ label[for="banner-upload"],
   background-size: cover; background-position: center;
 }
 
-/* Placeholder Text */
+/* Placeholder Text - REMOVED */
 .profile-banner::before {
-  content: "UPLOAD BANNER";
+  content: "";       /* Removed text */
+  display: none;     /* Completely hidden */
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   color: var(--border-color); 
   font-weight: 900; font-size: 3rem; opacity: 0.5; pointer-events: none;
 }
+
 /* Hide placeholder if image/color set */
 .profile-banner[style*="url"]::before,
 .profile-banner[style*="linear-gradient"]::before { display: none !important; }
