@@ -1,3 +1,4 @@
+//src\Components\OnboardingView.jsx
 import React, { useState } from 'react';
 import GlassInput from './GlassInput';
 import AvatarUpload from './AvatarUpload';

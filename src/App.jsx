@@ -1,6 +1,11 @@
+// ============================================
+// FILE: src/App.jsx
+// ============================================
 import React, { useState, useEffect } from "react";
 import "./index.css";
 import { initialFormData } from "./data";
+import { auth } from "./firebaseConfig";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 // Import Components
 import LandingPage from "./components/LandingPage";
@@ -8,18 +13,18 @@ import SignUpView from "./components/SignUpView";
 import LoginView from "./components/LoginView";
 import OnboardingView from "./components/OnboardingView";
 import ProfileView from "./components/ProfileView";
-import PrivacyNoticeView from "./Components/PrivacyNoticeView";
-import ThemeToggle from "./Components/ThemeToggle"; // <--- IMPORT NEW COMPONENT
+import PrivacyNoticeView from "./components/PrivacyNoticeView";
+import ThemeToggle from "./components/ThemeToggle";
 
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  // --- THEME LOGIC START ---
-  // Default to 'dark' to match your boss's preference, or check local storage
+  // Theme Logic
   const [theme, setTheme] = useState(localStorage.getItem('app-theme') || 'dark');
 
   useEffect(() => {
-    // This applies the class to the HTML tag so CSS knows which colors to use
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('app-theme', theme);
   }, [theme]);
@@ -27,7 +32,29 @@ const App = () => {
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
   };
-  // --- THEME LOGIC END ---
+
+  // Auth State Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+      
+      if (user) {
+        // User is signed in, check if they have completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem(`onboarding_${user.uid}`);
+        if (hasCompletedOnboarding) {
+          setCurrentView('profile');
+        } else {
+          setCurrentView('onboarding');
+        }
+      } else {
+        // User is signed out
+        setCurrentView('landing');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const [formData, setFormData] = useState({
     ...initialFormData,
@@ -36,12 +63,11 @@ const App = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
 
-  // ... (Keep your existing handlers: handleChange, handleImageChange, etc.) ...
-  // (I am omitting them here to save space, but DO NOT DELETE THEM from your code)
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -49,6 +75,7 @@ const App = () => {
       setFormData(prev => ({ ...prev, avatar: file }));
     }
   };
+
   const handleBannerUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -56,25 +83,50 @@ const App = () => {
       setFormData(prev => ({ ...prev, themeColor: '' }));
     }
   };
+
   const handleThemeColorSelect = (color) => {
     setFormData(prev => ({ ...prev, themeColor: color }));
     setBannerPreview(null);
   };
+
   const handleProfileSubmit = (e) => {
     e.preventDefault();
+    if (currentUser) {
+      localStorage.setItem(`onboarding_${currentUser.uid}`, 'completed');
+    }
     setCurrentView('profile');
   };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setFormData({ ...initialFormData, themeColor: '' });
+      setAvatarPreview(null);
+      setBannerPreview(null);
+      setCurrentView('landing');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      alert("Failed to log out. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 p-md-5 position-relative overflow-hidden">
       
-      {/* --- ADD TOGGLE BUTTON HERE --- */}
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-      {/* Background Ambience */}
       <div className="noise-overlay"></div>
       
-      {/* --- Routing --- */}
       {currentView === 'landing' && (
         <LandingPage 
           onGetStarted={() => setCurrentView('signup')} 
@@ -119,8 +171,9 @@ const App = () => {
           avatarPreview={avatarPreview}
           bannerPreview={bannerPreview}
           onEdit={() => setCurrentView('onboarding')}
-          onLogout={() => setCurrentView('login')}
+          onLogout={handleLogout}
           onPrivacyClick={() => setCurrentView('privacy')}
+          currentUser={currentUser}
         />
       )}
 

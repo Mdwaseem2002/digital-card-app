@@ -477,3 +477,97 @@ label[for="banner-upload"],
 .fade-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; transform: translateY(10px); }
 @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
 .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+
+/* Dashboard Header */
+.dashboard-header {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Stat Cards */
+.stat-card {
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Card Preview Mini */
+.card-preview-mini {
+  transition: all 0.3s ease;
+}
+
+.card-preview-mini:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Copy Button Animation */
+@keyframes checkmark {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.btn:active {
+  animation: checkmark 0.3s ease;
+}
+
+/* Alert Pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.alert-warning {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Status Badge Glow */
+.badge.bg-success {
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+}
+
+.badge.bg-warning {
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+/* Input Group */
+.input-group .form-control:focus {
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Social Links in Profile */
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  color: inherit;
+}
+
+.social-btn:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Responsive Dashboard */
+@media (max-width: 991px) {
+  .dashboard-header {
+    text-align: center;
+  }
+  
+  .stat-card {
+    margin-bottom: 0.5rem;
+  }
+}
