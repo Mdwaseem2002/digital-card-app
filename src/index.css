@@ -177,99 +177,169 @@ textarea.glass-input {
   margin: 0 auto;
   position: relative;
   z-index: 2;
+  /* Ensure text colors inherit from your global theme settings */
+  color: var(--text-main); 
 }
 
-/* Top Right Login Button */
-.btn-login-pill {
-  background: var(--accent); /* UPDATED: Changed from #ffffff to accent color */
-  border: none;
-  border-radius: 50px;
-  padding: 10px 24px;
-  font-weight: 600;
-  color: #ffffff; /* UPDATED: Changed from #000000 to white */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  display: flex; align-items: center; gap: 8px;
-  transition: all 0.2s ease;
-}
-.btn-login-pill:hover {
-  background: var(--accent-hover); /* UPDATED: Added hover state */
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-}
-
-/* Typography */
-.landing-subtitle {
-  color: #9CA3AF; 
-  font-size: 1rem;
-  letter-spacing: 0.5px;
-  font-weight: 500;
-}
-
+/* --- Typography --- */
 .landing-title {
-  color: var(--text-main);
   font-size: 3.5rem;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.1;
+  color: var(--text-main);
+  letter-spacing: -1px;
 }
 
 .landing-description {
   color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.9;
 }
 
-/* --- CTA PILL WRAPPER (Start Your Journey) --- */
-.cta-pill-wrapper {
-  background: #ffffff;
+.features-list {
+  font-weight: 600;
+  color: var(--accent); /* Uses your Orange variable */
+  font-size: 0.95rem;
+}
+
+/* --- Brush Stroke (The Orange Underline) --- */
+.brush-stroke {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  color: var(--accent); /* This makes the SVG orange */
+  z-index: -1;
+  transform: rotate(-1deg);
+  opacity: 0.9;
+}
+
+/* --- Navigation Button (Ghost Style) --- */
+.btn-login-ghost {
+  background: transparent;
+  border: 1px solid var(--text-muted); /* Subtle border */
+  color: var(--text-main);
+  padding: 8px 24px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-login-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* --- Email Input Pill Wrapper --- */
+.email-pill-wrapper {
+  background: var(--bg-secondary, #ffffff); /* Fallback to white if variable missing */
+  border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 100px;
-  padding: 6px 6px 6px 30px; /* Padding for text */
-  display: inline-flex;
+  padding: 6px;
+  display: flex;
   align-items: center;
-  justify-content: space-between;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   width: 100%;
-  max-width: 480px;
-  transition: transform 0.2s;
-}
-.cta-pill-wrapper:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+  max-width: 460px;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-.cta-label {
-  font-size: 1.25rem;
-  font-family: serif; 
-  color: #000000;
-  font-weight: 500;
+/* Dark Mode specific for Pill Background */
+[data-theme="dark"] .email-pill-wrapper {
+  background: #1a1a1a; /* Dark grey for pill bg in dark mode */
+  border-color: #333;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* The Dark Button Inside Pill */
-.btn-pill-dark {
-  background-color: var(--accent); /* UPDATED: Changed from var(--btn-dark-bg) to accent color */
-  color: #ffffff;
+.email-pill-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 10px 40px rgba(255, 102, 0, 0.15); /* Orange glow */
+}
+
+.icon-box {
+  padding-left: 15px;
+  padding-right: 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.email-input-field {
   border: none;
-  border-radius: 50px;
-  padding: 14px 32px;
+  background: transparent;
+  flex: 1; /* Takes available space */
+  padding: 12px 0;
   font-size: 1rem;
-  font-weight: 500;
-  display: flex; align-items: center; gap: 8px;
-  transition: background-color 0.2s, opacity 0.2s;
-}
-.btn-pill-dark:hover { 
-  background-color: var(--accent-hover); /* UPDATED: Added hover state */
-  opacity: 1; /* Removed opacity change */
+  color: var(--text-main);
+  outline: none;
 }
 
-/* Dark Mode Overrides for Pill */
-[data-theme="dark"] .cta-pill-wrapper { background: #2a2a2a; }
-[data-theme="dark"] .cta-label { color: #ffffff; }
-/* UPDATED: Removed dark mode override for .btn-pill-dark to keep it orange */
+/* --- The "Get Started" Button inside the pill --- */
+.btn-pill-action {
+  /* 1. Make the button visible against the white input */
+  background-color: #ffffff; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Adds a shadow so you can see the button shape */
+  border: 1px solid rgba(0, 0, 0, 0.05);     /* Very subtle border for definition */
+  
+  /* 2. Text Styling (Orange) */
+  color: var(--accent); 
+  font-weight: 700;
+  
+  /* 3. Layout & Sizing */
+  border-radius: 50px;
+  padding: 10px 30px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 10px; /* Space between input text and button */
+}
 
+/* --- Hover State --- */
+.btn-pill-action:hover {
+  background-color: var(--accent); /* Button turns Orange */
+  color: #ffffff;                  /* Text turns White */
+  border-color: var(--accent);
+  transform: translateY(-2px);     /* Slight lift effect */
+  box-shadow: 0 8px 20px rgba(255, 102, 0, 0.3); /* Orange glow */
+}
 
-/* Responsive Adjustments */
+/* --- Dark Mode Adjustments --- */
+/* Ensures the button pops in Dark Mode too */
+[data-theme="dark"] .btn-pill-action {
+  background-color: #ffffff;
+  color: var(--accent);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark mode */
+}
+
+[data-theme="dark"] .btn-pill-action:hover {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+/* --- Decoration --- */
+.image-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  background: var(--accent);
+  filter: blur(80px);
+  opacity: 0.15;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* --- Responsive Adjustments --- */
 @media (max-width: 992px) {
   .landing-title { font-size: 2.5rem; }
-  .cta-pill-wrapper { width: 100%; justify-content: space-between; }
-  .btn-login-pill { position: relative; margin-bottom: 20px; } /* Stack on mobile */
-  .position-absolute.top-0.end-0 { position: static !important; text-align: right; }
+  .email-pill-wrapper { width: 100%; margin: 0 auto; }
 }
 
 /* =========================================
