@@ -1,28 +1,32 @@
 // ============================================
-// FILE: src/App.jsx
+// FILE: src/App.jsx (FIXED - Public Card Routing)
 // ============================================
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./index.css";
 import { initialFormData } from "./data";
-import { auth } from "./firebaseConfig";
+import { auth, db } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
-// Import Components
-import LandingPage from "./components/LandingPage";
-import SignUpView from "./components/SignUpView";
-import LoginView from "./components/LoginView";
-import OnboardingView from "./components/OnboardingView";
-import ProfileView from "./components/ProfileView";
-import PrivacyNoticeView from "./components/PrivacyNoticeView";
-import ThemeToggle from "./components/ThemeToggle";
+import LandingPage from "./Components/LandingPage";
+import SignUpView from "./Components/SignUpView";
+import LoginView from "./Components/LoginView";
+import OnboardingView from "./Components/OnboardingView";
+import ProfileView from "./Components/ProfileView";
+import PrivacyNoticeView from "./Components/PrivacyNoticeView";
+import ThemeToggle from "./Components/ThemeToggle";
+import PortalDashboard from "./Components/PortalDashboard";
+import PublicCardView from "./Components/PublicCardView";
 
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Theme Logic
   const [theme, setTheme] = useState(localStorage.getItem('app-theme') || 'dark');
+  const [formData, setFormData] = useState({ ...initialFormData, themeColor: '' });
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [currentCardSlug, setCurrentCardSlug] = useState(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -33,35 +37,156 @@ const App = () => {
     setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
-  // Auth State Listener
+  const updateURL = useCallback((path) => {
+    window.history.pushState({}, '', path);
+  }, []);
+
+  const loadUserDataInstantly = useCallback((user) => {
+    console.time('⚡ loadUserData');
+    
+    // INSTANT: Load from localStorage
+    const localProfile = localStorage.getItem(`profile_${user.uid}`);
+    if (localProfile) {
+      try {
+        const userData = JSON.parse(localProfile);
+        setFormData(prev => ({ ...prev, ...userData }));
+        if (userData.avatarUrl) setAvatarPreview(userData.avatarUrl);
+        if (userData.bannerUrl) setBannerPreview(userData.bannerUrl);
+        if (userData.cardSlug) setCurrentCardSlug(userData.cardSlug);
+        console.log('✅ Loaded from localStorage');
+        console.timeEnd('⚡ loadUserData');
+      } catch (e) {
+        console.log('❌ Error parsing localStorage');
+      }
+    }
+    
+    // Background sync (non-blocking)
+    setTimeout(() => {
+      syncWithFirestore(user);
+    }, 500);
+  }, []);
+
+  const syncWithFirestore = async (user) => {
+    try {
+      console.log('🔄 Background Firestore sync...');
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setFormData(prev => ({ ...prev, ...userData }));
+        if (userData.avatarUrl) setAvatarPreview(userData.avatarUrl);
+        if (userData.bannerUrl) setBannerPreview(userData.bannerUrl);
+        if (userData.cardSlug) setCurrentCardSlug(userData.cardSlug);
+        
+        localStorage.setItem(`profile_${user.uid}`, JSON.stringify(userData));
+        console.log('✅ Firestore sync complete');
+      }
+    } catch (error) {
+      console.log('❌ Firestore sync failed (using local data)');
+    }
+  };
+
+  // Check URL on initial load (BEFORE auth check)
   useEffect(() => {
+    const path = window.location.pathname;
+    
+    if (path.startsWith('/card/')) {
+      const slug = path.replace('/card/', '');
+      console.log('🔗 Public card detected:', slug);
+      setCurrentCardSlug(slug);
+      setCurrentView('public-card');
+      setLoading(false); // No need to wait for auth
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      
+      if (path.startsWith('/card/')) {
+        const slug = path.replace('/card/', '');
+        setCurrentCardSlug(slug);
+        setCurrentView('public-card');
+      } else if (path === '/portal' || path === '/dashboard') {
+        if (currentUser) {
+          setCurrentView('portal');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/login') {
+        setCurrentView('login');
+      } else if (path === '/signup') {
+        setCurrentView('signup');
+      } else if (path === '/') {
+        setCurrentView(currentUser ? 'profile' : 'landing');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser]);
+
+  useEffect(() => {
+    // ✅ CRITICAL FIX: Don't run auth check if already showing public card
+    if (currentView === 'public-card') {
+      console.log('🔗 Public card view active - skipping auth redirect');
+      return;
+    }
+
+    console.time('🔐 Auth check');
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.timeEnd('🔐 Auth check');
+      console.log('👤 User:', user ? user.uid : 'none');
+      
       setCurrentUser(user);
       setLoading(false);
       
       if (user) {
-        // User is signed in, check if they have completed onboarding
+        // Load data without blocking
+        loadUserDataInstantly(user);
+        
         const hasCompletedOnboarding = localStorage.getItem(`onboarding_${user.uid}`);
-        if (hasCompletedOnboarding) {
+        const path = window.location.pathname;
+        
+        console.log('📍 Path:', path);
+        console.log('✅ Onboarding:', hasCompletedOnboarding ? 'Complete' : 'Pending');
+        
+        // ✅ Don't override if viewing public card
+        if (path.startsWith('/card/')) {
+          console.log('🔗 Staying on public card view');
+          return;
+        }
+        
+        if (path === '/portal' || path === '/dashboard') {
+          console.log('→ Showing portal');
+          setCurrentView('portal');
+        } else if (hasCompletedOnboarding) {
+          console.log('→ Showing profile');
           setCurrentView('profile');
         } else {
+          console.log('→ Showing onboarding');
           setCurrentView('onboarding');
         }
       } else {
-        // User is signed out
+        // User not logged in
+        const path = window.location.pathname;
+        
+        // ✅ Allow public card view without login
+        if (path.startsWith('/card/')) {
+          console.log('🔗 Public card - no login required');
+          return;
+        }
+        
+        console.log('→ Showing landing');
         setCurrentView('landing');
+        updateURL('/');
       }
     });
 
     return () => unsubscribe();
-  }, []);
-
-  const [formData, setFormData] = useState({
-    ...initialFormData,
-    themeColor: '' 
-  });
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [bannerPreview, setBannerPreview] = useState(null);
+  }, [currentView, loadUserDataInstantly, updateURL]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -89,12 +214,40 @@ const App = () => {
     setBannerPreview(null);
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    
     if (currentUser) {
+      console.log('💾 Saving profile...');
+      
+      // Save locally first
       localStorage.setItem(`onboarding_${currentUser.uid}`, 'completed');
+      localStorage.setItem(`profile_${currentUser.uid}`, JSON.stringify(formData));
+      
+      // Navigate immediately
+      setCurrentView('profile');
+      updateURL('/profile');
+      
+      console.log('✅ Profile saved locally, navigating...');
+      
+      // Save to Firestore in background
+      setTimeout(async () => {
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          await setDoc(userDocRef, {
+            ...formData,
+            userId: currentUser.uid,
+            email: currentUser.email,
+            cardStatus: 'Inactive',
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+          }, { merge: true });
+          console.log('✅ Synced to Firestore');
+        } catch (error) {
+          console.log('❌ Firestore save failed (data stored locally)');
+        }
+      }, 100);
     }
-    setCurrentView('profile');
   };
 
   const handleLogout = async () => {
@@ -104,13 +257,21 @@ const App = () => {
       setAvatarPreview(null);
       setBannerPreview(null);
       setCurrentView('landing');
+      updateURL('/');
     } catch (error) {
       console.error("Error signing out:", error);
       alert("Failed to log out. Please try again.");
     }
   };
 
-  if (loading) {
+  const navigateToPortal = () => {
+    console.log('📍 Navigating to portal...');
+    setCurrentView('portal');
+    updateURL('/portal');
+  };
+
+  // Minimal loading - only show on initial page load
+  if (loading && currentView === 'landing') {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center">
         <div className="spinner-border text-primary" role="status">
@@ -124,13 +285,18 @@ const App = () => {
     <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 p-md-5 position-relative overflow-hidden">
       
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-
       <div className="noise-overlay"></div>
       
       {currentView === 'landing' && (
         <LandingPage 
-          onGetStarted={() => setCurrentView('signup')} 
-          onLogin={() => setCurrentView('login')} 
+          onGetStarted={() => {
+            setCurrentView('signup');
+            updateURL('/signup');
+          }} 
+          onLogin={() => {
+            setCurrentView('login');
+            updateURL('/login');
+          }} 
         />
       )}
 
@@ -139,7 +305,10 @@ const App = () => {
           formData={formData} 
           handleChange={handleChange} 
           onNext={() => setCurrentView('onboarding')} 
-          onSwitchToLogin={() => setCurrentView('login')}
+          onSwitchToLogin={() => {
+            setCurrentView('login');
+            updateURL('/login');
+          }}
         />
       )}
 
@@ -147,8 +316,18 @@ const App = () => {
         <LoginView 
           formData={formData} 
           handleChange={handleChange} 
-          onLogin={() => setCurrentView('profile')} 
-          onSwitchToSignUp={() => setCurrentView('signup')}
+          onLogin={() => {
+            const hasOnboarding = localStorage.getItem(`onboarding_${currentUser?.uid}`);
+            if (hasOnboarding) {
+              navigateToPortal();
+            } else {
+              setCurrentView('onboarding');
+            }
+          }} 
+          onSwitchToSignUp={() => {
+            setCurrentView('signup');
+            updateURL('/signup');
+          }}
         />
       )}
 
@@ -173,7 +352,17 @@ const App = () => {
           onEdit={() => setCurrentView('onboarding')}
           onLogout={handleLogout}
           onPrivacyClick={() => setCurrentView('privacy')}
+          onPortalClick={navigateToPortal}
           currentUser={currentUser}
+        />
+      )}
+
+      {currentView === 'portal' && (
+        <PortalDashboard 
+          currentUser={currentUser}
+          formData={formData}
+          onEditProfile={() => setCurrentView('onboarding')}
+          onLogout={handleLogout}
         />
       )}
 
@@ -181,6 +370,10 @@ const App = () => {
         <PrivacyNoticeView 
           onBack={() => setCurrentView('profile')} 
         />
+      )}
+
+      {currentView === 'public-card' && currentCardSlug && (
+        <PublicCardView cardSlug={currentCardSlug} />
       )}
     </div>
   );

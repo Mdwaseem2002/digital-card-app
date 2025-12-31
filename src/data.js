@@ -1,3 +1,4 @@
+//src\data.js
 export const initialFormData = {
   avatar: null, // Will store URL object
   fullName: "",

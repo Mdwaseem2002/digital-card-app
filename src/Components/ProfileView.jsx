@@ -1,13 +1,17 @@
+//src\Components\ProfileView.jsx (FIXED - Ref Warning Resolved)
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
 
-const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout, onPrivacyClick }) => {
+const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout, onPrivacyClick, onPortalClick }) => {
   
   // State for Sticky Button Visibility
   const [showSticky, setShowSticky] = useState(true);
   const buttonsSectionRef = useRef(null);
 
   useEffect(() => {
+    // FIXED: Store ref value in variable to avoid stale closure in cleanup
+    const currentRef = buttonsSectionRef.current;
+    
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -27,13 +31,14 @@ const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout,
       }
     );
 
-    if (buttonsSectionRef.current) {
-      observer.observe(buttonsSectionRef.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (buttonsSectionRef.current) {
-        observer.unobserve(buttonsSectionRef.current);
+      // FIXED: Use the stored ref value in cleanup
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
@@ -64,9 +69,16 @@ const ProfileView = ({ formData, avatarPreview, bannerPreview, onEdit, onLogout,
             <button onClick={onEdit} className="profile-header-btn">
               ← Edit Profile
             </button>
-            <button onClick={onLogout} className="profile-header-btn d-flex align-items-center gap-2">
-              <Icons.Login /> Log Out
-            </button>
+            <div className="d-flex gap-2">
+              {onPortalClick && (
+                <button onClick={onPortalClick} className="profile-header-btn d-flex align-items-center gap-2">
+                  🎛️ Portal
+                </button>
+              )}
+              <button onClick={onLogout} className="profile-header-btn d-flex align-items-center gap-2">
+                <Icons.Login /> Log Out
+              </button>
+            </div>
           </div>
 
           <div className="p-5 text-center">
