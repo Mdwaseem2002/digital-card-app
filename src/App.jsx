@@ -1,7 +1,7 @@
 // ============================================
-// FILE: src/App.jsx (FIXED - Public Card Routing)
+// FILE: src/App.jsx (FIXED - NO AUTH LOOP)
 // ============================================
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./index.css";
 import { initialFormData } from "./data";
 import { auth, db } from "./firebaseConfig";
@@ -27,6 +27,9 @@ const App = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
   const [currentCardSlug, setCurrentCardSlug] = useState(null);
+  
+  // Use ref to prevent multiple auth state changes
+  const authInitialized = useRef(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -42,6 +45,8 @@ const App = () => {
   }, []);
 
   const loadUserDataInstantly = useCallback((user) => {
+    if (!user) return;
+    
     console.time('⚡ loadUserData');
     
     // INSTANT: Load from localStorage
@@ -67,6 +72,8 @@ const App = () => {
   }, []);
 
   const syncWithFirestore = async (user) => {
+    if (!user) return;
+    
     try {
       console.log('🔄 Background Firestore sync...');
       const userDocRef = doc(db, 'users', user.uid);
@@ -127,10 +134,10 @@ const App = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentUser]);
 
+  // ✅ FIX: Auth state listener with proper cleanup
   useEffect(() => {
-    // ✅ CRITICAL FIX: Don't run auth check if already showing public card
-    if (currentView === 'public-card') {
-      console.log('🔗 Public card view active - skipping auth redirect');
+    // Skip if already initialized or viewing public card
+    if (authInitialized.current || currentView === 'public-card') {
       return;
     }
 
@@ -140,8 +147,11 @@ const App = () => {
       console.timeEnd('🔐 Auth check');
       console.log('👤 User:', user ? user.uid : 'none');
       
+      // Mark as initialized
+      authInitialized.current = true;
+      
       setCurrentUser(user);
-      setLoading(false);
+      setLoading(false); // ✅ IMMEDIATE - Don't wait for anything
       
       if (user) {
         // Load data without blocking
@@ -185,8 +195,10 @@ const App = () => {
       }
     });
 
-    return () => unsubscribe();
-  }, [currentView, loadUserDataInstantly, updateURL]);
+    return () => {
+      unsubscribe();
+    };
+  }, []); // ✅ Empty dependency array - run once only
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -238,7 +250,7 @@ const App = () => {
             ...formData,
             userId: currentUser.uid,
             email: currentUser.email,
-            cardStatus: 'Inactive',
+            cardStatus: 'Draft',
             createdAt: new Date().toISOString(),
             lastUpdated: new Date().toISOString()
           }, { merge: true });
@@ -258,6 +270,8 @@ const App = () => {
       setBannerPreview(null);
       setCurrentView('landing');
       updateURL('/');
+      // Reset auth initialized flag
+      authInitialized.current = false;
     } catch (error) {
       console.error("Error signing out:", error);
       alert("Failed to log out. Please try again.");
